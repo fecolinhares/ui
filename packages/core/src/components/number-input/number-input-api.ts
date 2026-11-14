@@ -220,9 +220,8 @@ function numberInputApiBody(
   // Reports the value once an interaction ends, with the event that ended it
   // when it's the same kind as the one behind the change, so `details.event`
   // stays the type its reason lists, like a keyup for a key's step.
-  function commit(end?: Event) {
+  function commit(end?: Event, value = store.get().value) {
     clearTimeout(wheelTimer)
-    const value = store.get().value
     const last = pending
     pending = undefined
     if (sameValue(startValue, value) || !last) {
@@ -357,20 +356,29 @@ function numberInputApiBody(
           return commit(event)
         }
         edited = false
-        if (state.text.trim() !== "") {
-          const parsed = parseNumber(state.text, localeOf(state), state.format)
-          if (parsed !== null) {
-            setValue(
-              snapToStep(clamp(parsed, state.min, state.max), rangeOf(state)),
-              "input-commit",
-              event
-            )
+        const text = state.text.trim()
+        if (text === "") {
+          if (state.value === null) {
+            showValue()
+            return commit(event)
           }
-        } else if (state.value !== null) {
-          setValue(null, "input-commit", event)
+          const done = setValue(null, "input-commit", event)
+          showValue()
+          return commit(event, done ? null : undefined)
         }
+        const parsed = parseNumber(state.text, localeOf(state), state.format)
+        if (parsed === null) {
+          showValue()
+          return commit(event)
+        }
+        const next = snapToStep(
+          clamp(parsed, state.min, state.max),
+          rangeOf(state)
+        )
+        // A controlled store takes this value only after the event.
+        const done = setValue(next, "input-commit", event)
         showValue()
-        commit(event)
+        commit(event, done ? next : undefined)
       },
       keydown(event: KeyboardEvent) {
         const state = store.get()

@@ -132,6 +132,24 @@ test.describe("typing", () => {
     await amount(page).focus()
     await expect.poll(() => status(page, "Committed")).toBe("quantity:5")
   })
+
+  test("a controlled field commits the value it clamps to", async ({
+    page,
+    open,
+  }) => {
+    await open("number-input", { controlled: "", quantity: "4" })
+    await quantity(page).fill("42")
+    await quantity(page).fill("150")
+    await page.keyboard.press("Enter")
+    await expect(quantity(page)).toHaveValue("99")
+    await expect.poll(() => status(page, "Committed")).toBe("quantity:99")
+    await quantity(page).fill("0")
+    await page.keyboard.press("Enter")
+    await expect(quantity(page)).toHaveValue("1")
+    await expect
+      .poll(() => status(page, "Committed"))
+      .toBe("quantity:99 quantity:1")
+  })
 })
 
 test.describe("buttons", () => {

@@ -206,6 +206,44 @@ describe("number input", () => {
     ])
   })
 
+  test("a commit reports the value a controlled field clamps to", () => {
+    const onValueCommit = vi.fn()
+    const options = {
+      id: "n",
+      value: 4,
+      min: 1,
+      max: 12,
+      locale: "en-US",
+      onValueCommit,
+    }
+    const instance = numberInput(options)
+    instance.api.internal.type("20")
+    instance.api.internal.commitText()
+    expect(
+      onValueCommit.mock.calls.map(([value, details]) => [
+        value,
+        details.reason,
+      ])
+    ).toEqual([[12, "input-commit"]])
+    instance.setOptions({ ...options, value: 12 })
+    expect(instance.get().value).toBe(12)
+  })
+
+  test("a commit that snaps back to the value the field holds reports nothing", () => {
+    const onValueCommit = vi.fn()
+    const instance = numberInput({
+      id: "n",
+      value: 4,
+      step: 1,
+      locale: "en-US",
+      onValueCommit,
+    })
+    instance.api.internal.type("3.6")
+    instance.api.internal.commitText()
+    expect(instance.get().value).toBe(4)
+    expect(onValueCommit).not.toHaveBeenCalled()
+  })
+
   test("a controller step leaves nothing for the next blur to commit", () => {
     const onValueCommit = vi.fn()
     const instance = numberInput({ id: "n", defaultValue: 1, onValueCommit })
